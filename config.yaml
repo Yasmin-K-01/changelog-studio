@@ -1,0 +1,46 @@
+# Changelog Studio Configuration File
+
+server:
+  host: "127.0.0.1"
+  port: 5000
+  debug: true
+  secret_key: "dev-key-change-this-in-production"
+
+workspace:
+  directory: "."
+  default_file: "v1.1.0.md"
+  allowed_extensions:
+    - ".md"
+    - ".markdown"
+  exclude_files:
+    - "README.md"
+    - "latest_news.md"
+
+categories:
+  - id: "added"
+    label: "Added"
+    color: "linear-gradient(135deg, #10b981, #059669)"
+    icon: "plus"
+  - id: "fixed"
+    label: "Fixed"
+    color: "linear-gradient(135deg, #3b82f6, #2563eb)"
+    icon: "wrench"
+  - id: "changed"
+    label: "Changed"
+    color: "linear-gradient(135deg, #8b5cf6, #7c3aed)"
+    icon: "refresh"
+  - id: "removed"
+    label: "Removed"
+    color: "linear-gradient(135deg, #ef4444, #dc2626)"
+    icon: "trash"
+  - id: "security"
+    label: "Security"
+    color: "linear-gradient(135deg, #f59e0b, #d97706)"
+    icon: "shield"
+
+theme:
+  mode: "dark"
+  primary_color: "#6366f1"
+  secondary_color: "#1e293b"
+  enable_orbs: true
+  animations_enabled: true
