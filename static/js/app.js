@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewPlaceholder = document.getElementById('preview-placeholder');
     const previewRender = document.getElementById('preview-render');
     const previewLoader = document.getElementById('preview-loader');
+    const previewActionButtons = document.getElementById('preview-action-buttons');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnCsv = document.getElementById('btn-csv');
     
     const toastContainer = document.getElementById('toast-container');
 
@@ -208,9 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (show) {
             previewPlaceholder.classList.remove('hidden');
             previewRender.classList.add('hidden');
+            previewActionButtons.classList.add('hidden');
         } else {
             previewPlaceholder.classList.add('hidden');
             previewRender.classList.remove('hidden');
+            previewActionButtons.classList.remove('hidden');
         }
     }
 
@@ -267,6 +272,33 @@ document.addEventListener('DOMContentLoaded', () => {
         // Save Button click
         btnSave.addEventListener('click', saveFile);
 
+        // Copy Markdown to Clipboard
+        btnCopy.addEventListener('click', async () => {
+            const content = inputContent.value;
+            if (!content) {
+                showToast('No content to copy', 'error');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(content);
+                showToast('Changelog copied to clipboard!', 'success');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showToast('Could not copy to clipboard', 'error');
+            }
+        });
+
+        // Export to CSV
+        btnCsv.addEventListener('click', () => {
+            const content = inputContent.value;
+            const filename = currentSelectedFile || inputFilename.value.trim() || 'changelog.md';
+            if (!content) {
+                showToast('No content to export', 'error');
+                return;
+            }
+            exportToCSV(filename, content);
+        });
+
         // Optional: Local auto-preview rendering on text typing in the editor
         let typingTimer;
         inputContent.addEventListener('input', () => {
@@ -278,6 +310,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderMarkdown(inputContent.value);
             }, 300); // Wait for user to stop typing for 300ms
         });
+    }
+
+    // Helper to parse Markdown and download CSV
+    function exportToCSV(filename, markdownContent) {
+        const lines = markdownContent.split('\n');
+        const csvRows = [['Version', 'Category', 'Description']];
+        const version = filename.replace('.md', '');
+        
+        let currentSection = 'General';
+        
+        lines.forEach(line => {
+            line = line.trim();
+            if (!line) return;
+            
+            // Check for headers (e.g. ### Highlights)
+            if (line.startsWith('#')) {
+                currentSection = line.replace(/#+\s+/, '').trim();
+                return;
+            }
+            
+            // Check for list items
+            if (line.startsWith('*') || line.startsWith('-')) {
+                let content = line.substring(1).trim();
+                
+                // Parse tags like [Added]
+                const badgeMatch = content.match(/^\[(Added|Fixed|Changed|Removed|Security)\]/i);
+                if (badgeMatch) {
+                    const category = badgeMatch[1];
+                    const desc = content.replace(/^\[.*?\]/, '').trim();
+                    csvRows.push([version, category, desc]);
+                } else {
+                    csvRows.push([version, currentSection, content]);
+                }
+            }
+        });
+        
+        // Convert rows to CSV format
+        const csvContent = csvRows.map(row => 
+            row.map(value => `"${value.replace(/"/g, '""')}"`).join(',')
+        ).join('\n');
+        
+        try {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${version}_changelog.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Changelog exported to CSV!', 'success');
+        } catch (err) {
+            console.error('CSV Export Error:', err);
+            showToast('Failed to export CSV', 'error');
+        }
     }
 
     // Toast Notification Creator
