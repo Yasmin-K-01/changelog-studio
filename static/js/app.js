@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewActionButtons = document.getElementById('preview-action-buttons');
     const btnCopy = document.getElementById('btn-copy');
     const btnCsv = document.getElementById('btn-csv');
+    const btnExportAll = document.getElementById('btn-export-all');
     
     const toastContainer = document.getElementById('toast-container');
 
@@ -203,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Inject content
         previewRender.innerHTML = htmlContent;
+        addCodeCopyButtons();
         showPlaceholder(false);
     }
 
@@ -299,6 +301,88 @@ document.addEventListener('DOMContentLoaded', () => {
             exportToCSV(filename, content);
         });
 
+        // Export All versions to CSV
+        btnExportAll.addEventListener('click', async () => {
+            if (btnExportAll.classList.contains('disabled')) return;
+            
+            btnExportAll.classList.add('disabled');
+            showToast('Gathering all changelogs...', 'info');
+            
+            try {
+                // Fetch list of files
+                const response = await fetch('/api/files');
+                const data = await response.json();
+                
+                if (!data.success || !data.files || data.files.length === 0) {
+                    showToast('No files to export', 'error');
+                    btnExportAll.classList.remove('disabled');
+                    return;
+                }
+                
+                // Fetch contents of all files
+                const fetchPromises = data.files.map(file => 
+                    fetch(`/api/file/${encodeURIComponent(file)}`).then(res => res.json())
+                );
+                
+                const filesData = await Promise.all(fetchPromises);
+                
+                // Compile into a single CSV
+                const csvRows = [['Version', 'Category', 'Description']];
+                
+                filesData.forEach(filePayload => {
+                    if (!filePayload.success) return;
+                    
+                    const version = filePayload.filename.replace('.md', '');
+                    const lines = filePayload.content.split('\n');
+                    let currentSection = 'General';
+                    
+                    lines.forEach(line => {
+                        line = line.trim();
+                        if (!line) return;
+                        
+                        if (line.startsWith('#')) {
+                            currentSection = line.replace(/#+\s+/, '').trim();
+                            return;
+                        }
+                        
+                        if (line.startsWith('*') || line.startsWith('-')) {
+                            let content = line.substring(1).trim();
+                            const badgeMatch = content.match(/^\[(Added|Fixed|Changed|Removed|Security)\]/i);
+                            if (badgeMatch) {
+                                const category = badgeMatch[1];
+                                const desc = content.replace(/^\[.*?\]/, '').trim();
+                                csvRows.push([version, category, desc]);
+                            } else {
+                                csvRows.push([version, currentSection, content]);
+                            }
+                        }
+                    });
+                });
+                
+                // Download CSV
+                const csvContent = csvRows.map(row => 
+                    row.map(value => `"${value.replace(/"/g, '""')}"`).join(',')
+                ).join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", `consolidated_changelog.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast('All changelogs exported!', 'success');
+            } catch (error) {
+                console.error('Export all error:', error);
+                showToast('Error exporting all changelogs', 'error');
+            } finally {
+                btnExportAll.classList.remove('disabled');
+            }
+        });
+
         // Optional: Local auto-preview rendering on text typing in the editor
         let typingTimer;
         inputContent.addEventListener('input', () => {
@@ -366,6 +450,43 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('CSV Export Error:', err);
             showToast('Failed to export CSV', 'error');
         }
+    }
+
+    // Helper to add interactive copy buttons to all <pre> blocks in the preview
+    function addCodeCopyButtons() {
+        const preBlocks = previewRender.querySelectorAll('pre');
+        preBlocks.forEach(pre => {
+            // Prevent duplicate buttons
+            if (pre.querySelector('.code-copy-btn')) return;
+
+            const button = document.createElement('button');
+            button.className = 'code-copy-btn';
+            button.type = 'button';
+            button.innerHTML = `
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <span>Copy</span>
+            `;
+
+            button.addEventListener('click', async () => {
+                const code = pre.querySelector('code');
+                const codeText = code ? code.innerText : pre.innerText;
+                try {
+                    await navigator.clipboard.writeText(codeText);
+                    button.querySelector('span').textContent = 'Copied!';
+                    showToast('Code block copied!', 'success');
+                    setTimeout(() => {
+                        button.querySelector('span').textContent = 'Copy';
+                    }, 2000);
+                } catch (err) {
+                    showToast('Failed to copy code', 'error');
+                }
+            });
+
+            pre.appendChild(button);
+        });
     }
 
     // Toast Notification Creator

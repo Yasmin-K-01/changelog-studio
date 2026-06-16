@@ -639,6 +639,38 @@ textarea::-webkit-scrollbar-thumb:hover {
     padding: 16px 20px;
     overflow-x: auto;
     margin: 20px 0;
+    position: relative;
+}
+
+/* Floating copy button inside pre blocks */
+.code-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.preview-render pre:hover .code-copy-btn {
+    opacity: 1;
+}
+
+.code-copy-btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
 }
 
 .preview-render pre code {
