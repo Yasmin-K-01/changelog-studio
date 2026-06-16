@@ -1,0 +1,34 @@
+[
+  {
+    "email": "user+subaddress@example.com",
+    "description": "Standard subaddressing/plus-addressing (RFC 5233) used for filtering."
+  },
+  {
+    "email": "\"spaced name\"@example.com",
+    "description": "Quoted local-part containing a space character (allowed under RFC 5322)."
+  },
+  {
+    "email": "admin@localhost",
+    "description": "Domain lacking a dot/TLD, valid for local mail servers and intranets."
+  },
+  {
+    "email": "user@[192.168.1.100]",
+    "description": "IPv4 domain literal inside square brackets instead of a domain name."
+  },
+  {
+    "email": "user@[IPv6:2001:db8:85a3:8d3:1319:8a2e:370:7348]",
+    "description": "IPv6 domain literal with 'IPv6:' prefix (RFC 5321)."
+  },
+  {
+    "email": "!#$%&'*+-/=?^_`{|}~@example.co.uk",
+    "description": "Local-part containing all allowed special characters without quotes."
+  },
+  {
+    "email": "test@very-long-subdomain-level-number-nine.sub.sub.sub.sub.sub.sub.sub.example.com",
+    "description": "Deeply nested subdomain structure stretching boundary lengths."
+  },
+  {
+    "email": "用户@例子.广告",
+    "description": "Internationalized Email Address (EAI) containing non-ASCII Unicode characters (RFC 6530)."
+  }
+]
